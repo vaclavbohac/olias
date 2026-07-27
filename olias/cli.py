@@ -52,15 +52,20 @@ def cmd_ride(args) -> int:
     from olias.session import SessionRunner
     from olias.tui import RideApp
 
-    if not DEVICES_PATH.exists() and not (args.trainer and args.heart):
-        print("no devices configured — run `olias devices` first", file=sys.stderr)
-        return 1
-    stored = json.loads(DEVICES_PATH.read_text()) if DEVICES_PATH.exists() else {}
-    trainer_addr = args.trainer or (stored.get("trainer") or {}).get("address")
-    heart_addr = args.heart or (stored.get("heart") or {}).get("address")
-    if not trainer_addr:
-        print("no trainer configured", file=sys.stderr)
-        return 1
+    if args.demo:
+        trainer, heart = _DemoTrainer(), _DemoHeart()
+    else:
+        if not DEVICES_PATH.exists() and not (args.trainer and args.heart):
+            print("no devices configured — run `olias devices` first", file=sys.stderr)
+            return 1
+        stored = json.loads(DEVICES_PATH.read_text()) if DEVICES_PATH.exists() else {}
+        trainer_addr = args.trainer or (stored.get("trainer") or {}).get("address")
+        heart_addr = args.heart or (stored.get("heart") or {}).get("address")
+        if not trainer_addr:
+            print("no trainer configured", file=sys.stderr)
+            return 1
+        trainer = TrainerAdapter(trainer_addr)
+        heart = HeartRateAdapter(heart_addr) if heart_addr else _NoHeart()
 
     profile = config.load_route_profile()
     engine = SessionEngine(
@@ -68,8 +73,6 @@ def cmd_ride(args) -> int:
         rider_model=config.default_rider_model(),
         reference=ReferenceRide.load(config.RESOURCES / "olias-ride-001.fit"),
     )
-    trainer = TrainerAdapter(trainer_addr)
-    heart = HeartRateAdapter(heart_addr) if heart_addr else _NoHeart()
     recorder = SessionRecorder(profile)
 
     app_holder = {}
@@ -87,7 +90,9 @@ def cmd_ride(args) -> int:
 
     async def main_async():
         stop = runner.stop
-        tasks = [asyncio.create_task(trainer.run(stop))]
+        tasks = []
+        if isinstance(trainer, TrainerAdapter):
+            tasks.append(asyncio.create_task(trainer.run(stop)))
         if isinstance(heart, HeartRateAdapter):
             tasks.append(asyncio.create_task(heart.run(stop)))
         await app.run_async()
@@ -107,6 +112,32 @@ class _NoHeart:
     latest_bpm = None
 
 
+class _DemoTrainer:
+    """Simulated rider for previewing the TUI: steady tempo with some life in it."""
+
+    connected = True
+
+    def __init__(self):
+        self.grades = []
+
+    @property
+    def latest_power_w(self):
+        import math
+
+        return 180.0 + 25.0 * math.sin(time.time() / 7)
+
+    def set_grade(self, grade_pct):
+        self.grades.append(grade_pct)
+
+
+class _DemoHeart:
+    @property
+    def latest_bpm(self):
+        import math
+
+        return round(138 + 6 * math.sin(time.time() / 11))
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(prog="olias", description="Ride to Olías on the Kickr")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -114,6 +145,7 @@ def main() -> int:
     ride = sub.add_parser("ride", help="ride the route")
     ride.add_argument("--trainer", help="trainer BLE address (overrides stored)")
     ride.add_argument("--hr", dest="heart", help="heart rate BLE address (overrides stored)")
+    ride.add_argument("--demo", action="store_true", help="simulated rider, no hardware needed")
     args = parser.parse_args()
     return {"devices": cmd_devices, "ride": cmd_ride}[args.command](args)
 
