@@ -27,9 +27,13 @@ uploads to Strava as a ride up the actual Olías road.
 uv run olias ride          # first run opens a device picker; space pauses, q saves & quits
 uv run olias ride --demo   # no hardware: preview the TUI with a simulated rider
 uv run olias devices       # re-pick the trainer / HR monitor later
+
+# pick up an interrupted ride where it stopped; the saved FIT covers the whole ride
+uv run olias ride --continue sessions/olias-20260727-194645.fit
 ```
 
-Recordings land in `sessions/` as FIT files.
+Recordings land in `sessions/` as FIT files, with a matching `.log` per ride
+(connections, pauses, and why the session ended).
 
 ### macOS: Bluetooth permission
 

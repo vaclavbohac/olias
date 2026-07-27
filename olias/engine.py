@@ -100,6 +100,24 @@ class SessionEngine:
     def state(self) -> EngineState:
         return self._state
 
+    def restore(
+        self,
+        *,
+        position_m: float,
+        elapsed_s: float,
+        climb_started_at_s: float | None = None,
+        climb_ended_at_s: float | None = None,
+        cadence_sum: float = 0.0,
+        cadence_samples: int = 0,
+    ) -> None:
+        """Continue a previous session: state stays ARMED until the rider pedals."""
+        self._position_m = position_m
+        self._elapsed_s = elapsed_s
+        self._climb_started_at_s = climb_started_at_s
+        self._climb_ended_at_s = climb_ended_at_s
+        self._cadence_sum = cadence_sum
+        self._cadence_samples = cadence_samples
+
     def pause(self) -> None:
         if self._state is EngineState.RIDING:
             self._state = EngineState.PAUSED

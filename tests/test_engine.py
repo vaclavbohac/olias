@@ -158,6 +158,28 @@ def test_climb_delta_leads_when_strong(engine, profile):
     assert snap.climb_delta_s > 0
 
 
+def test_restore_continues_a_ride_mid_climb(engine, profile):
+    engine.restore(
+        position_m=12000.0,  # mid-climb
+        elapsed_s=2000.0,
+        climb_started_at_s=1300.0,
+        cadence_sum=8000.0,
+        cadence_samples=100,
+    )
+    armed = engine.tick(power_w=0.0, heart_rate_bpm=None, dt_s=DT)
+    assert armed.state is EngineState.ARMED  # pedal to (re)start
+    assert armed.position_m == 12000.0
+
+    snap = engine.tick(power_w=150.0, heart_rate_bpm=None, cadence_rpm=90.0, dt_s=DT)
+    assert snap.state is EngineState.RIDING
+    assert snap.elapsed_s == pytest.approx(2000.0 + DT)
+    assert snap.position_m > 12000.0
+    assert snap.remaining_ascent_m < profile.remaining_ascent(0)
+    assert snap.climb_delta_s is not None  # climb comparison carries on
+    assert snap.climb_time_s == pytest.approx(2000.25 - 1300.0)
+    assert snap.avg_cadence_rpm == pytest.approx((8000 + 90) / 101)
+
+
 def test_average_cadence_excludes_coasting(engine):
     engine.tick(power_w=150.0, heart_rate_bpm=None, cadence_rpm=80.0, dt_s=DT)
     engine.tick(power_w=150.0, heart_rate_bpm=None, cadence_rpm=90.0, dt_s=DT)

@@ -38,12 +38,52 @@ class _Sample:
 class SessionRecorder:
     """Feed it every snapshot; it keeps 1 Hz samples and writes the FIT at the end."""
 
+    SEMICIRCLE_TO_DEG = 180 / 2**31
+
     def __init__(self, profile: RouteProfile):
         self._profile = profile
         self._samples: list[_Sample] = []
         self._events: list[tuple[int, EventType]] = []  # (wall_ms, START/STOP)
         self._last_state: EngineState | None = None
         self._last_recorded_second: int | None = None
+
+    @property
+    def seeded_cadence(self) -> tuple[float, int]:
+        """(sum, count) of nonzero cadence samples — engine restore input."""
+        values = [s.cadence_rpm for s in self._samples if s.cadence_rpm]
+        return sum(values), len(values)
+
+    @classmethod
+    def resume_from(cls, fit_path: Path, profile: RouteProfile) -> SessionRecorder:
+        """Seed a recorder with a previous session so the final FIT is one ride."""
+        import fitdecode
+
+        recorder = cls(profile)
+        for frame in fitdecode.FitReader(fit_path):
+            if not (isinstance(frame, fitdecode.FitDataMessage) and frame.name == "record"):
+                continue
+            f = {x.name: x.value for x in frame.fields}
+            if f.get("timestamp") is None or f.get("distance") is None:
+                continue
+            recorder._samples.append(_Sample(
+                wall_ms=int(f["timestamp"].timestamp() * 1000),
+                position_m=f["distance"],
+                lat=(f.get("position_lat") or 0) * cls.SEMICIRCLE_TO_DEG,
+                lon=(f.get("position_long") or 0) * cls.SEMICIRCLE_TO_DEG,
+                altitude_m=f.get("altitude") or 0.0,
+                grade_pct=f.get("grade") or 0.0,
+                speed_ms=f.get("speed") or 0.0,
+                power_w=float(f.get("power") or 0),
+                heart_rate_bpm=f.get("heart_rate"),
+                cadence_rpm=float(f["cadence"]) if f.get("cadence") is not None else None,
+            ))
+        if recorder._samples:
+            # the gap between sessions becomes a proper timer stop; the
+            # continuation's first RIDING snapshot adds the matching start
+            recorder._events.append((recorder._samples[0].wall_ms, EventType.START))
+            recorder._events.append((recorder._samples[-1].wall_ms + 1000, EventType.STOP))
+            recorder._last_recorded_second = len(recorder._samples) - 1
+        return recorder
 
     def on_snapshot(self, snapshot: Snapshot, wall_time_s: float) -> None:
         wall_ms = int(wall_time_s * 1000)

@@ -71,7 +71,38 @@ def cmd_ride(args) -> int:
         rider_model=config.default_rider_model(),
         reference=ReferenceRide.load(config.RESOURCES / "olias-ride-001.fit"),
     )
-    recorder = SessionRecorder(profile)
+
+    if args.resume:
+        prior_path = Path(args.resume)
+        if not prior_path.exists():
+            print(f"no such session: {prior_path}", file=sys.stderr)
+            return 1
+        recorder = SessionRecorder.resume_from(prior_path, profile)
+        prior = ReferenceRide.load(prior_path)
+        climb = profile.climb
+        cadence_sum, cadence_samples = recorder.seeded_cadence
+        engine.restore(
+            position_m=prior.total_distance_m,
+            elapsed_s=prior.total_time_s,
+            climb_started_at_s=(
+                prior.elapsed_s_at(climb.start_m)
+                if prior.total_distance_m > climb.start_m
+                else None
+            ),
+            climb_ended_at_s=(
+                prior.elapsed_s_at(climb.end_m)
+                if prior.total_distance_m >= climb.end_m
+                else None
+            ),
+            cadence_sum=cadence_sum,
+            cadence_samples=cadence_samples,
+        )
+        print(
+            f"continuing from {prior.total_distance_m / 1000:.2f} km, "
+            f"{int(prior.total_time_s) // 60} min ridden — pedal to resume"
+        )
+    else:
+        recorder = SessionRecorder(profile)
 
     stamp = datetime.fromtimestamp(time.time()).strftime("%Y%m%d-%H%M%S")
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
@@ -169,6 +200,12 @@ def main() -> int:
     ride.add_argument("--trainer", help="trainer BLE address (overrides stored)")
     ride.add_argument("--hr", dest="heart", help="heart rate BLE address (overrides stored)")
     ride.add_argument("--demo", action="store_true", help="simulated rider, no hardware needed")
+    ride.add_argument(
+        "--continue",
+        dest="resume",
+        metavar="SESSION_FIT",
+        help="continue a previous session from where it stopped",
+    )
     args = parser.parse_args()
     return {"devices": cmd_devices, "ride": cmd_ride}[args.command](args)
 

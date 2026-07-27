@@ -77,3 +77,38 @@ def test_session_recording_reads_back_as_a_reference_ride(session_result):
     _, _, lat, lon = ride.moving_records[0]
     assert lat == pytest.approx(36.699, abs=0.005)
     assert lon == pytest.approx(-4.437, abs=0.005)
+
+
+def test_recorder_seeded_from_a_previous_session_writes_one_complete_ride(
+    session_result, tmp_path
+):
+    from olias.engine import EngineState, Snapshot
+
+    final, _, written = session_result
+    profile = config.load_route_profile()
+    recorder = SessionRecorder.resume_from(written, profile)
+
+    base = final.elapsed_s
+    for i in range(1, 11):  # ten more riding seconds after the restart
+        snap = Snapshot(
+            state=EngineState.RIDING,
+            elapsed_s=base + i,
+            position_m=final.position_m,
+            speed_ms=5.0,
+            grade_pct=0.0,
+            remaining_ascent_m=0.0,
+            power_w=200.0,
+            heart_rate_bpm=140,
+            cadence_rpm=85.0,
+            avg_cadence_rpm=85.0,
+            climb_delta_s=None,
+            climb_time_s=None,
+            summit_eta_s=None,
+            trainer_grade_pct=None,
+        )
+        # the continuation happens a few hours after the first session's clock
+        recorder.on_snapshot(snap, wall_time_s=1_753_700_000.0 + i)
+
+    merged = recorder.write(tmp_path / "merged.fit")
+    ride = ReferenceRide.load(merged)
+    assert ride.total_time_s == pytest.approx(final.elapsed_s + 10, abs=2)
