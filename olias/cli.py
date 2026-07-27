@@ -13,32 +13,24 @@ DEVICES_PATH = Path.home() / ".config" / "olias" / "devices.json"
 SESSIONS_DIR = Path("sessions")
 
 
-def cmd_devices(_args) -> int:
-    from bleak import BleakScanner
+def _pick_devices() -> dict | None:
+    """Run the TUI picker; persist and return the selection (None if cancelled)."""
+    from olias.devicepicker import DevicePickerApp
 
-    print("scanning for 10 s — wake the trainer and strap on the HR monitor...")
-    devices = asyncio.run(BleakScanner.discover(timeout=10.0))
-    named = [d for d in devices if d.name]
-    if not named:
-        print("no named BLE devices found")
-        return 1
-    for i, d in enumerate(named):
-        print(f"  [{i}] {d.name}  ({d.address})")
-
-    def pick(prompt):
-        raw = input(prompt).strip()
-        if not raw:
-            return None
-        d = named[int(raw)]
-        return {"address": d.address, "name": d.name}
-
-    config = {
-        "trainer": pick("trainer number (enter to skip): "),
-        "heart": pick("heart rate number (enter to skip): "),
-    }
+    selection = DevicePickerApp().run()
+    if selection is None or selection.get("trainer") is None:
+        return None
     DEVICES_PATH.parent.mkdir(parents=True, exist_ok=True)
-    DEVICES_PATH.write_text(json.dumps(config, indent=2))
+    DEVICES_PATH.write_text(json.dumps(selection, indent=2))
     print(f"saved to {DEVICES_PATH}")
+    return selection
+
+
+def cmd_devices(_args) -> int:
+    selection = _pick_devices()
+    if selection is None:
+        print("cancelled — nothing saved", file=sys.stderr)
+        return 1
     return 0
 
 
@@ -55,17 +47,22 @@ def cmd_ride(args) -> int:
     if args.demo:
         trainer, heart = _DemoTrainer(), _DemoHeart()
     else:
-        if not DEVICES_PATH.exists() and not (args.trainer and args.heart):
-            print("no devices configured — run `olias devices` first", file=sys.stderr)
-            return 1
         stored = json.loads(DEVICES_PATH.read_text()) if DEVICES_PATH.exists() else {}
-        trainer_addr = args.trainer or (stored.get("trainer") or {}).get("address")
-        heart_addr = args.heart or (stored.get("heart") or {}).get("address")
-        if not trainer_addr:
-            print("no trainer configured", file=sys.stderr)
-            return 1
-        trainer = TrainerAdapter(trainer_addr)
-        heart = HeartRateAdapter(heart_addr) if heart_addr else _NoHeart()
+        if not stored.get("trainer") and not args.trainer:
+            stored = _pick_devices()  # first ride: choose devices in the TUI
+            if stored is None:
+                print("no trainer selected", file=sys.stderr)
+                return 1
+        stored_trainer = stored.get("trainer") or {}
+        stored_heart = stored.get("heart") or {}
+        trainer_addr = args.trainer or stored_trainer.get("address")
+        heart_addr = args.heart or stored_heart.get("address")
+        trainer = TrainerAdapter(trainer_addr, name=stored_trainer.get("name"))
+        heart = (
+            HeartRateAdapter(heart_addr, name=stored_heart.get("name"))
+            if heart_addr
+            else _NoHeart()
+        )
 
     profile = config.load_route_profile()
     engine = SessionEngine(

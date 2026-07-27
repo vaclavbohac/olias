@@ -19,23 +19,31 @@ def parse_heart_rate(payload: bytes) -> int:
 
 
 class HeartRateAdapter:
-    def __init__(self, address: str):
+    def __init__(self, address: str, name: str | None = None):
         self.address = address
+        self.name = name
         self.latest_bpm: int | None = None  # None while disconnected
 
     async def run(self, stop: asyncio.Event) -> None:
+        from olias.ble.trainer import rescan_by_name
+
         backoff = 1.0
+        failures = 0
         while not stop.is_set():
             try:
                 async with BleakClient(self.address) as client:
                     await client.start_notify(HR_MEASUREMENT, self._on_measurement)
                     logger.info("heart rate connected")
-                    backoff = 1.0
+                    backoff, failures = 1.0, 0
                     while not stop.is_set() and client.is_connected:
                         await asyncio.sleep(0.5)
             except Exception as exc:
                 logger.warning("heart rate connection lost: %s", exc)
+                failures += 1
             self.latest_bpm = None
+            if failures >= 3:
+                await rescan_by_name(self)
+                failures = 0
             if not stop.is_set():
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 10.0)

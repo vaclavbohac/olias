@@ -25,6 +25,8 @@ from olias.profile import RouteProfile
 class _Sample:
     wall_ms: int
     position_m: float
+    lat: float
+    lon: float
     altitude_m: float
     grade_pct: float
     speed_ms: float
@@ -59,9 +61,12 @@ class SessionRecorder:
         if second == self._last_recorded_second:
             return
         self._last_recorded_second = second
+        lat, lon = self._profile.latlon_at(snapshot.position_m)
         self._samples.append(_Sample(
             wall_ms=wall_ms,
             position_m=snapshot.position_m,
+            lat=lat,
+            lon=lon,
             altitude_m=self._profile.altitude_at(snapshot.position_m),
             grade_pct=snapshot.grade_pct,
             speed_ms=snapshot.speed_ms,
@@ -95,6 +100,10 @@ class SessionRecorder:
             record = RecordMessage()
             record.timestamp = s.wall_ms
             record.distance = s.position_m
+            # the route's real coordinates: the virtual ride maps onto the
+            # actual Malaga-Olias road on Strava and friends
+            record.position_lat = s.lat
+            record.position_long = s.lon
             record.altitude = s.altitude_m
             record.grade = s.grade_pct
             record.speed = s.speed_ms

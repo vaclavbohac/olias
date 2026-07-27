@@ -73,3 +73,7 @@ def test_session_recording_reads_back_as_a_reference_ride(session_result):
     assert ride.total_distance_m == pytest.approx(final.position_m, abs=10)
     assert ride.total_time_s == pytest.approx(final.elapsed_s, abs=2)
     assert ride.power_at_second(int(ride.total_time_s / 2)) == 250.0
+    # GPS trace maps onto the real road: first moving record sits at the route start
+    _, _, lat, lon = ride.moving_records[0]
+    assert lat == pytest.approx(36.699, abs=0.005)
+    assert lon == pytest.approx(-4.437, abs=0.005)

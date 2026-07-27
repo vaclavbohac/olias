@@ -9,6 +9,19 @@ from bleak import BleakClient
 
 logger = logging.getLogger(__name__)
 
+
+async def rescan_by_name(adapter) -> None:
+    """macOS rotates BLE identifiers; a stale stored id is rescued by name."""
+    if not adapter.name:
+        return
+    from bleak import BleakScanner
+
+    logger.info("rescanning for %s by name", adapter.name)
+    device = await BleakScanner.find_device_by_name(adapter.name, timeout=10.0)
+    if device is not None and device.address != adapter.address:
+        logger.info("found %s at new address %s", adapter.name, device.address)
+        adapter.address = device.address
+
 FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
 INDOOR_BIKE_DATA = "00002ad2-0000-1000-8000-00805f9b34fb"
 CONTROL_POINT = "00002ad9-0000-1000-8000-00805f9b34fb"
@@ -48,8 +61,9 @@ def parse_indoor_bike_data(payload: bytes) -> tuple[float | None, float | None]:
 class TrainerAdapter:
     """Maintains a connection to the Kickr; exposes latest power, accepts grade."""
 
-    def __init__(self, address: str):
+    def __init__(self, address: str, name: str | None = None):
         self.address = address
+        self.name = name
         self.latest_power_w: float | None = None  # None while disconnected
         self.latest_cadence_rpm: float | None = None
         self._client: BleakClient | None = None
@@ -65,6 +79,7 @@ class TrainerAdapter:
 
     async def run(self, stop: asyncio.Event) -> None:
         backoff = 1.0
+        failures = 0
         while not stop.is_set():
             try:
                 async with BleakClient(self.address) as client:
@@ -74,13 +89,17 @@ class TrainerAdapter:
                         CONTROL_POINT, bytes([OP_REQUEST_CONTROL]), response=True
                     )
                     logger.info("trainer connected")
-                    backoff = 1.0
+                    backoff, failures = 1.0, 0
                     await self._pump_grades(client, stop)
             except Exception as exc:
                 logger.warning("trainer connection lost: %s", exc)
+                failures += 1
             self._client = None
             self.latest_power_w = None  # disconnected -> engine coasts at 0 W
             self.latest_cadence_rpm = None
+            if failures >= 3:
+                await rescan_by_name(self)
+                failures = 0
             if not stop.is_set():
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 10.0)
