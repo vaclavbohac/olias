@@ -30,6 +30,10 @@ uv run olias devices       # re-pick the trainer / HR monitor later
 
 # pick up an interrupted ride where it stopped; the saved FIT covers the whole ride
 uv run olias ride --continue sessions/olias-20260727-194645.fit
+
+# soften how steep the climb FEELS (trainer resistance only; the simulation,
+# your speed, and the Climb Delta always use the full grade)
+uv run olias ride --feel 0.7
 ```
 
 Recordings land in `sessions/` as FIT files, with a matching `.log` per ride

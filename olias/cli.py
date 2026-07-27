@@ -125,7 +125,9 @@ def cmd_ride(args) -> int:
             # runner executes as a textual worker on the app's own event loop
             app.update_snapshot(snap)
 
-    runner = SessionRunner(engine=engine, trainer=trainer, heart=heart, on_snapshot=on_snapshot)
+    runner = SessionRunner(
+        engine=engine, trainer=trainer, heart=heart, on_snapshot=on_snapshot, feel=args.feel
+    )
     app = RideApp(runner=runner, trainer=trainer, heart=heart, profile=profile)
     app_holder["app"] = app
 
@@ -205,6 +207,13 @@ def main() -> int:
         dest="resume",
         metavar="SESSION_FIT",
         help="continue a previous session from where it stopped",
+    )
+    ride.add_argument(
+        "--feel",
+        type=float,
+        default=1.0,
+        help="scale the grade sent to the trainer (feel only, e.g. 0.7); "
+        "simulation stays at full grade",
     )
     args = parser.parse_args()
     return {"devices": cmd_devices, "ride": cmd_ride}[args.command](args)

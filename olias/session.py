@@ -40,6 +40,7 @@ class SessionRunner:
         tick_interval_s: float = TICK_INTERVAL_S,
         engine_dt_s: float | None = None,
         clock: Callable[[], float] = time.time,
+        feel: float = 1.0,
     ):
         self._engine = engine
         self._trainer = trainer
@@ -50,6 +51,9 @@ class SessionRunner:
         # two to ride the full route without sleeping.
         self._engine_dt_s = engine_dt_s if engine_dt_s is not None else tick_interval_s
         self._clock = clock
+        # scales grade sent to the trainer (feel only): position physics always
+        # uses the full grade, so climb times and the Climb Delta stay honest
+        self._feel = feel
         self.stop = asyncio.Event()
 
     def pause_toggle(self) -> None:
@@ -73,7 +77,7 @@ class SessionRunner:
                 dt_s=self._engine_dt_s,
             )
             if snapshot.trainer_grade_pct is not None:
-                self._trainer.set_grade(snapshot.trainer_grade_pct)
+                self._trainer.set_grade(snapshot.trainer_grade_pct * self._feel)
             self._on_snapshot(snapshot, self._clock())
             if snapshot.state is EngineState.FINISHED:
                 logger.info("session ended: route finished")

@@ -65,6 +65,39 @@ def test_session_finishes_and_commands_grades(session_result):
     assert max(trainer.grades) > 8   # including the steep bits
 
 
+def test_feel_scales_trainer_grade_but_not_the_simulation():
+    profile = config.load_route_profile()
+
+    def ride(feel):
+        engine = SessionEngine(
+            profile=profile,
+            rider_model=config.default_rider_model(),
+            reference=ReferenceRide.load(config.RESOURCES / "olias-ride-001.fit"),
+        )
+        trainer = FakeTrainer(power_w=200.0)
+        last = {}
+
+        def on_snapshot(snap, _t):
+            last["snap"] = snap
+            if snap.position_m > 14000:
+                runner.stop.set()
+
+        runner = SessionRunner(
+            engine=engine, trainer=trainer, heart=FakeHeart(),
+            on_snapshot=on_snapshot, tick_interval_s=0, engine_dt_s=0.25,
+            clock=lambda: 1_753_600_000.0, feel=feel,
+        )
+        asyncio.run(runner.run())
+        return last["snap"], trainer
+
+    full_snap, full_trainer = ride(feel=1.0)
+    soft_snap, soft_trainer = ride(feel=0.5)
+    # trainer resistance halved...
+    assert max(soft_trainer.grades) == pytest.approx(max(full_trainer.grades) / 2)
+    # ...but the simulated world is identical: same power -> same time to 14 km
+    assert soft_snap.elapsed_s == pytest.approx(full_snap.elapsed_s, abs=1)
+
+
 def test_session_recording_reads_back_as_a_reference_ride(session_result):
     final, _, written = session_result
     assert written is not None
