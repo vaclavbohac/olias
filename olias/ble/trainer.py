@@ -22,15 +22,17 @@ SIM_CRR = 0.004   # unit 0.0001
 SIM_CW = 0.51     # kg/m, unit 0.01
 
 
-def parse_indoor_bike_data(payload: bytes) -> float | None:
-    """Instantaneous power in watts, if present in this notification."""
+def parse_indoor_bike_data(payload: bytes) -> tuple[float | None, float | None]:
+    """(instantaneous power W, instantaneous cadence rpm), each None if absent."""
     flags = struct.unpack_from("<H", payload, 0)[0]
     offset = 2
+    cadence = None
     if not flags & 0x0001:  # More Data bit clear -> instantaneous speed present
         offset += 2
     if flags & 0x0002:  # average speed
         offset += 2
-    if flags & 0x0004:  # instantaneous cadence
+    if flags & 0x0004:  # instantaneous cadence, unit 0.5 rpm
+        cadence = struct.unpack_from("<H", payload, offset)[0] / 2
         offset += 2
     if flags & 0x0008:  # average cadence
         offset += 2
@@ -39,8 +41,8 @@ def parse_indoor_bike_data(payload: bytes) -> float | None:
     if flags & 0x0020:  # resistance level
         offset += 2
     if flags & 0x0040:  # instantaneous power
-        return float(struct.unpack_from("<h", payload, offset)[0])
-    return None
+        return float(struct.unpack_from("<h", payload, offset)[0]), cadence
+    return None, cadence
 
 
 class TrainerAdapter:
@@ -49,6 +51,7 @@ class TrainerAdapter:
     def __init__(self, address: str):
         self.address = address
         self.latest_power_w: float | None = None  # None while disconnected
+        self.latest_cadence_rpm: float | None = None
         self._client: BleakClient | None = None
         self._pending_grade_pct: float | None = None
 
@@ -77,6 +80,7 @@ class TrainerAdapter:
                 logger.warning("trainer connection lost: %s", exc)
             self._client = None
             self.latest_power_w = None  # disconnected -> engine coasts at 0 W
+            self.latest_cadence_rpm = None
             if not stop.is_set():
                 await asyncio.sleep(backoff)
                 backoff = min(backoff * 2, 10.0)
@@ -104,6 +108,8 @@ class TrainerAdapter:
         )
 
     def _on_bike_data(self, _characteristic, payload: bytearray) -> None:
-        power = parse_indoor_bike_data(bytes(payload))
+        power, cadence = parse_indoor_bike_data(bytes(payload))
         if power is not None:
             self.latest_power_w = power
+        if cadence is not None:
+            self.latest_cadence_rpm = cadence

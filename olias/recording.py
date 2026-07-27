@@ -30,6 +30,7 @@ class _Sample:
     speed_ms: float
     power_w: float
     heart_rate_bpm: int | None
+    cadence_rpm: float | None
 
 
 class SessionRecorder:
@@ -66,6 +67,7 @@ class SessionRecorder:
             speed_ms=snapshot.speed_ms,
             power_w=snapshot.power_w,
             heart_rate_bpm=snapshot.heart_rate_bpm,
+            cadence_rpm=snapshot.cadence_rpm,
         ))
 
     def write(self, path: Path) -> Path | None:
@@ -99,6 +101,8 @@ class SessionRecorder:
             record.power = round(s.power_w)
             if s.heart_rate_bpm is not None:
                 record.heart_rate = s.heart_rate_bpm
+            if s.cadence_rpm is not None:
+                record.cadence = round(s.cadence_rpm)
             builder.add(record)
 
         first, last = self._samples[0], self._samples[-1]
@@ -127,6 +131,10 @@ class SessionRecorder:
         if heart_rates:
             session.avg_heart_rate = round(sum(heart_rates) / len(heart_rates))
             session.max_heart_rate = max(heart_rates)
+        cadences = [s.cadence_rpm for s in self._samples if s.cadence_rpm]  # nonzero: pedaling
+        if cadences:
+            session.avg_cadence = round(sum(cadences) / len(cadences))
+            session.max_cadence = round(max(cadences))
         builder.add(session)
 
         activity = ActivityMessage()

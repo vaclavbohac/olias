@@ -85,7 +85,7 @@ def cmd_ride(args) -> int:
             app.update_snapshot(snap)
 
     runner = SessionRunner(engine=engine, trainer=trainer, heart=heart, on_snapshot=on_snapshot)
-    app = RideApp(runner=runner, trainer=trainer, heart=heart)
+    app = RideApp(runner=runner, trainer=trainer, heart=heart, profile=profile)
     app_holder["app"] = app
 
     async def main_async():
@@ -125,6 +125,12 @@ class _DemoTrainer:
         import math
 
         return 180.0 + 25.0 * math.sin(time.time() / 7)
+
+    @property
+    def latest_cadence_rpm(self):
+        import math
+
+        return 82.0 + 8.0 * math.sin(time.time() / 9)
 
     def set_grade(self, grade_pct):
         self.grades.append(grade_pct)

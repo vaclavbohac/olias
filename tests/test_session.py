@@ -15,6 +15,7 @@ from olias.session import SessionRunner
 class FakeTrainer:
     def __init__(self, power_w=250.0):
         self.latest_power_w = power_w
+        self.latest_cadence_rpm = 85.0
         self.connected = True
         self.grades = []
 

@@ -26,7 +26,11 @@ class Snapshot:
     remaining_ascent_m: float
     power_w: float
     heart_rate_bpm: int | None
+    cadence_rpm: float | None
+    avg_cadence_rpm: float | None
     climb_delta_s: float | None
+    climb_time_s: float | None
+    summit_eta_s: float | None
     trainer_grade_pct: float | None
 
 
@@ -50,13 +54,25 @@ class SessionEngine:
         self._speed_ms = 0.0
         self._commanded_grade_pct: float | None = None
         self._climb_started_at_s: float | None = None
+        self._climb_ended_at_s: float | None = None
+        self._cadence_sum = 0.0
+        self._cadence_samples = 0
 
-    def tick(self, power_w: float, heart_rate_bpm: int | None, dt_s: float) -> Snapshot:
+    def tick(
+        self,
+        power_w: float,
+        heart_rate_bpm: int | None,
+        dt_s: float,
+        cadence_rpm: float | None = None,
+    ) -> Snapshot:
         if self._state is EngineState.ARMED and power_w >= self._start_power_w:
             self._state = EngineState.RIDING
         if self._state is EngineState.RIDING:
             self._advance(power_w, dt_s)
-        return self._snapshot(power_w, heart_rate_bpm)
+            if cadence_rpm:  # zero cadence is coasting, not pedaling
+                self._cadence_sum += cadence_rpm
+                self._cadence_samples += 1
+        return self._snapshot(power_w, heart_rate_bpm, cadence_rpm)
 
     def _advance(self, power_w: float, dt_s: float) -> None:
         self._elapsed_s += dt_s
@@ -69,6 +85,12 @@ class SessionEngine:
         self._position_m += self._speed_ms * dt_s
         if self._climb_started_at_s is None and self._profile.on_climb(self._position_m):
             self._climb_started_at_s = self._elapsed_s
+        if (
+            self._climb_started_at_s is not None
+            and self._climb_ended_at_s is None
+            and self._position_m >= self._profile.climb.end_m
+        ):
+            self._climb_ended_at_s = self._elapsed_s
         if self._position_m >= self._profile.total_distance_m:
             self._position_m = self._profile.total_distance_m
             self._speed_ms = 0.0
@@ -117,7 +139,35 @@ class SessionEngine:
         rider_time = self._elapsed_s - self._climb_started_at_s
         return reference_time - rider_time
 
-    def _snapshot(self, power_w: float, heart_rate_bpm: int | None) -> Snapshot:
+    PACE_RATIO_WARMUP_S = 120.0
+    PACE_RATIO_CLAMP = (0.5, 2.5)
+
+    def _summit_eta_s(self) -> float | None:
+        """Time to the shoulder at today's pace: reference pacing scaled by how
+        the rider compares to the reference over the climb ridden so far."""
+        if self._climb_started_at_s is None or not self._profile.on_climb(self._position_m):
+            return None
+        climb = self._profile.climb
+        reference_so_far = self._reference.elapsed_s_at(self._position_m) - self._reference.elapsed_s_at(climb.start_m)
+        reference_remaining = self._reference.elapsed_s_at(climb.end_m) - self._reference.elapsed_s_at(self._position_m)
+        rider_so_far = self._elapsed_s - self._climb_started_at_s
+        if rider_so_far < self.PACE_RATIO_WARMUP_S or reference_so_far <= 0:
+            ratio = 1.0
+        else:
+            lo, hi = self.PACE_RATIO_CLAMP
+            ratio = min(hi, max(lo, rider_so_far / reference_so_far))
+        return reference_remaining * ratio
+
+    def _climb_time_s(self) -> float | None:
+        """Riding time on the Climb; freezes at the shoulder as the result."""
+        if self._climb_started_at_s is None:
+            return None
+        end = self._climb_ended_at_s if self._climb_ended_at_s is not None else self._elapsed_s
+        return end - self._climb_started_at_s
+
+    def _snapshot(
+        self, power_w: float, heart_rate_bpm: int | None, cadence_rpm: float | None = None
+    ) -> Snapshot:
         return Snapshot(
             state=self._state,
             elapsed_s=self._elapsed_s,
@@ -127,6 +177,12 @@ class SessionEngine:
             remaining_ascent_m=self._profile.remaining_ascent(self._position_m),
             power_w=power_w,
             heart_rate_bpm=heart_rate_bpm,
+            cadence_rpm=cadence_rpm,
+            avg_cadence_rpm=(
+                self._cadence_sum / self._cadence_samples if self._cadence_samples else None
+            ),
             climb_delta_s=self._climb_delta_s(),
+            climb_time_s=self._climb_time_s(),
+            summit_eta_s=self._summit_eta_s(),
             trainer_grade_pct=self._grade_command(),
         )

@@ -17,6 +17,7 @@ TICK_INTERVAL_S = 0.25  # 4 Hz
 
 class Trainer(Protocol):
     latest_power_w: float | None
+    latest_cadence_rpm: float | None
     connected: bool
 
     def set_grade(self, grade_pct: float) -> None: ...
@@ -60,6 +61,7 @@ class SessionRunner:
             snapshot = self._engine.tick(
                 power_w=power if power is not None else 0.0,  # disconnected -> coast
                 heart_rate_bpm=self._heart.latest_bpm,
+                cadence_rpm=getattr(self._trainer, "latest_cadence_rpm", None),
                 dt_s=self._engine_dt_s,
             )
             if snapshot.trainer_grade_pct is not None:

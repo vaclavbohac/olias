@@ -116,10 +116,54 @@ def test_climb_delta_appears_on_climb_and_trails_when_weak(engine, profile):
     assert later.climb_delta_s < -60  # by minutes, not seconds
 
 
+def test_climb_time_runs_on_climb_and_freezes_at_the_shoulder(engine, profile):
+    before = ride_until(engine, profile.climb.start_m - 500, power_w=180.0)
+    assert before.climb_time_s is None
+
+    mid = ride_until(engine, profile.climb.start_m + 3000, power_w=180.0)
+    assert mid.climb_time_s is not None and mid.climb_time_s > 0
+
+    later = ride_until(engine, profile.climb.start_m + 5000, power_w=180.0)
+    assert later.climb_time_s > mid.climb_time_s  # still ticking
+
+    past = ride_until(engine, profile.climb.end_m + 500, power_w=180.0)
+    frozen = ride_until(engine, profile.climb.end_m + 1500, power_w=180.0)
+    assert frozen.climb_time_s == past.climb_time_s  # the result, kept on screen
+
+
+def test_summit_eta_adapts_to_todays_pace(engine, profile):
+    before = ride_until(engine, profile.climb.start_m - 500, power_w=180.0)
+    assert before.summit_eta_s is None
+
+    # ride a good stretch of the climb at out-of-shape watts
+    early = ride_until(engine, profile.climb.start_m + 2500, power_w=120.0)
+    assert early.summit_eta_s is not None
+
+    reference_remaining = engine._reference.elapsed_s_at(
+        profile.climb.end_m
+    ) - engine._reference.elapsed_s_at(early.position_m)
+    # slower than reference today -> ETA must exceed reference pacing from here
+    assert early.summit_eta_s > reference_remaining
+
+    later = ride_until(engine, profile.climb.start_m + 5000, power_w=120.0)
+    assert later.summit_eta_s < early.summit_eta_s  # progress shrinks the ETA
+
+    past = ride_until(engine, profile.climb.end_m + 100, power_w=180.0)
+    assert past.summit_eta_s is None  # gone once the shoulder is crested
+
+
 def test_climb_delta_leads_when_strong(engine, profile):
     ride_until(engine, profile.climb.start_m - 100, power_w=180.0)
     snap = ride_until(engine, profile.climb.start_m + 3000, power_w=300.0)
     assert snap.climb_delta_s > 0
+
+
+def test_average_cadence_excludes_coasting(engine):
+    engine.tick(power_w=150.0, heart_rate_bpm=None, cadence_rpm=80.0, dt_s=DT)
+    engine.tick(power_w=150.0, heart_rate_bpm=None, cadence_rpm=90.0, dt_s=DT)
+    snap = engine.tick(power_w=0.0, heart_rate_bpm=None, cadence_rpm=0.0, dt_s=DT)
+    assert snap.cadence_rpm == 0.0
+    assert snap.avg_cadence_rpm == pytest.approx(85.0)  # zeros are coasting, not pedaling
 
 
 def test_reaching_route_end_finishes_the_session(engine, profile):
