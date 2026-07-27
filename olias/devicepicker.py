@@ -66,7 +66,15 @@ class DevicePickerApp(App):
         self.run_worker(self._scan(), exclusive=True)
 
     async def _scan(self) -> None:
-        self._devices = await scan()
+        try:
+            self._devices = await scan()
+        except Exception as exc:
+            self.query_one("#title", Static).update("Bluetooth unavailable")
+            self.query_one("#hint", Static).update(
+                f"{exc} — on macOS grant Bluetooth to your terminal in "
+                "System Settings › Privacy & Security › Bluetooth, then press r"
+            )
+            return
         self._show_stage()
 
     def _show_stage(self) -> None:
