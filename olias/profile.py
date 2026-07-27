@@ -22,11 +22,13 @@ class RouteProfile:
         distances_m: list[float],
         altitudes_m: list[float],
         grades_pct: list[float],
+        latlons: list[tuple[float, float]],
         climb: Segment,
     ):
         self._distances_m = distances_m
         self._altitudes_m = altitudes_m
         self._grades_pct = grades_pct
+        self._latlons = latlons
         self.climb = climb
         # _ascent_after[i]: sum of positive altitude deltas from point i to the end
         self._ascent_after = [0.0] * len(altitudes_m)
@@ -42,6 +44,7 @@ class RouteProfile:
             distances_m=[float(r["distance_m"]) for r in rows],
             altitudes_m=[float(r["altitude_m"]) for r in rows],
             grades_pct=[float(r["grade_pct"]) for r in rows],
+            latlons=[(float(r["lat"]), float(r["lon"])) for r in rows],
             climb=climb,
         )
 
@@ -57,6 +60,11 @@ class RouteProfile:
 
     def grade_at(self, distance_m: float) -> float:
         return self._interpolate(self._grades_pct, distance_m)
+
+    def latlon_at(self, distance_m: float) -> tuple[float, float]:
+        lat = self._interpolate([ll[0] for ll in self._latlons], distance_m)
+        lon = self._interpolate([ll[1] for ll in self._latlons], distance_m)
+        return lat, lon
 
     def remaining_ascent(self, distance_m: float) -> float:
         ds = self._distances_m

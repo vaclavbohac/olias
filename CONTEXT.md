@@ -29,16 +29,16 @@ A simulated ride persisted as a FIT activity file in sessions/, structurally ide
 _Avoid_: log, history, result
 
 **The Climb**:
-The named segment of the Route Profile covering the sustained ascent (~km 8.5 to the 528 m summit at ~km 18.1), stored as two distance markers alongside the profile.
-_Avoid_: the hill, the mountain, segment (unqualified)
+The named segment of the Route Profile covering the sustained ascent, km 8.5 to the 525 m shoulder at km 17.25 (olias/config.py); Olías village itself is the turnaround, in a saddle at 477 m past the climb end.
+_Avoid_: the hill, the mountain, segment (unqualified), ending the climb at the village
 
 **Climb Delta**:
 Reference Ride's elapsed time minus the rider's elapsed time to reach the same position, both clocks zeroed at the Climb start; positive = rider is ahead. Shown only while on the Climb.
 _Avoid_: ghost, gap, difference
 
 **Replay Validation**:
-The acceptance test for the Rider Model: feed a Reference Ride's recorded power through it over the Route Profile and require the simulated time to match the real one (001 in-sample, 002 out-of-sample; missing power samples count as 0 W coasting).
-_Avoid_: backtest, simulation test
+The acceptance test for the Rider Model: feed a Reference Ride's recorded power through it over the Climb and require simulated moving time to match the ride's real moving time (001 in-sample ±2%; other rides out-of-sample with looser, condition-variance bounds).
+_Avoid_: backtest, simulation test, full-route replay (unwinnable: power cannot distinguish braking from coasting)
 
 ## Relationships
 
@@ -55,4 +55,5 @@ _Avoid_: backtest, simulation test
 
 ## Flagged ambiguities
 
-- (none yet)
+- "the summit": the profile shows two ~525 m peaks (km 17.2 and km 19.0), but they are the same physical shoulder crossed outbound and homebound on the out-and-back — resolved: "the shoulder" is the Climb end; the village saddle between them is the turnaround.
+- Odometers drift between recordings (city routing varies), so cross-ride positions are aligned by GPS proximity to canonical coordinates, never by raw distance.

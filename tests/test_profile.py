@@ -3,10 +3,10 @@ from pathlib import Path
 
 import pytest
 
-from olias.profile import RouteProfile, Segment
+from olias.config import CLIMB
+from olias.profile import RouteProfile
 
 ROUTE_CSV = Path(__file__).parent.parent / "resources" / "olias-route.csv"
-CLIMB = Segment(start_m=8500, end_m=18100)
 
 
 @pytest.fixture(scope="module")
@@ -62,3 +62,10 @@ def test_on_climb_includes_start_and_excludes_end(profile):
     assert profile.on_climb(CLIMB.start_m)
     assert profile.on_climb((CLIMB.start_m + CLIMB.end_m) / 2)
     assert not profile.on_climb(CLIMB.end_m)
+
+
+def test_latlon_matches_route_data_at_grid_points(profile, rows):
+    r = rows[3000]
+    lat, lon = profile.latlon_at(float(r["distance_m"]))
+    assert lat == pytest.approx(float(r["lat"]), abs=1e-6)
+    assert lon == pytest.approx(float(r["lon"]), abs=1e-6)

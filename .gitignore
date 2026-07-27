@@ -14,3 +14,6 @@ wheels/
 
 # Personal ride outputs
 sessions/
+
+# IDE
+.idea/
