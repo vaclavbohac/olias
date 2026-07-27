@@ -39,3 +39,9 @@ Facts that matter when parsing:
 - Expect nulls: altitude/grade are missing for the first ~60-390 m of a ride (baro warm-up), the first record lacks GPS, and 002 has mid-ride power/cadence gaps. Per-second grade also has spikes (e.g. -22% in 002) — smooth or clamp before sending to the trainer.
 - `distance` drifts between recordings (total distance differs by up to ~1.5 km for the same route), so distance-indexed comparisons across rides are only approximate.
 - Each file also carries `session`/`lap` summaries (NP, TSS, IF, HR/power zone times) usable without processing records.
+
+## Canonical route profile (`resources/olias-route.csv`)
+
+The clean distance-indexed profile the simulator should drive resistance from — use it instead of raw FIT grade. Columns: `distance_m` (uniform 5 m grid), `lat`, `lon`, `altitude_m`, `grade_pct`. 7,252 points, 36.26 km, 583 m ascent, grade -10.0..+11.0%.
+
+Regenerate with `uv run --with fitdecode tools/build_route.py`: it resamples ride 001, smooths altitude with a 55 m moving average, and derives grade from the smoothed altitude over 30 m spans (clamped to ±18%) — so the raw recordings' grade spikes cannot reach the trainer by construction.
