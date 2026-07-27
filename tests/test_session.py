@@ -1,7 +1,7 @@
 """Full simulated session: fake devices -> runner -> engine -> recorder -> FIT."""
+
 import asyncio
 import itertools
-from pathlib import Path
 
 import pytest
 
@@ -62,7 +62,7 @@ def test_session_finishes_and_commands_grades(session_result):
     assert final.state.name == "FINISHED"
     assert final.position_m == pytest.approx(36255, abs=10)
     assert len(trainer.grades) > 50  # grade followed the route
-    assert max(trainer.grades) > 8   # including the steep bits
+    assert max(trainer.grades) > 8  # including the steep bits
 
 
 def test_feel_scales_trainer_grade_but_not_the_simulation():
@@ -83,9 +83,14 @@ def test_feel_scales_trainer_grade_but_not_the_simulation():
                 runner.stop.set()
 
         runner = SessionRunner(
-            engine=engine, trainer=trainer, heart=FakeHeart(),
-            on_snapshot=on_snapshot, tick_interval_s=0, engine_dt_s=0.25,
-            clock=lambda: 1_753_600_000.0, feel=feel,
+            engine=engine,
+            trainer=trainer,
+            heart=FakeHeart(),
+            on_snapshot=on_snapshot,
+            tick_interval_s=0,
+            engine_dt_s=0.25,
+            clock=lambda: 1_753_600_000.0,
+            feel=feel,
         )
         asyncio.run(runner.run())
         return last["snap"], trainer
@@ -112,9 +117,7 @@ def test_session_recording_reads_back_as_a_reference_ride(session_result):
     assert lon == pytest.approx(-4.437, abs=0.005)
 
 
-def test_recorder_seeded_from_a_previous_session_writes_one_complete_ride(
-    session_result, tmp_path
-):
+def test_recorder_seeded_from_a_previous_session_writes_one_complete_ride(session_result, tmp_path):
     from olias.engine import EngineState, Snapshot
 
     final, _, written = session_result

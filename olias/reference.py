@@ -4,6 +4,7 @@ Records are 1 Hz and exist only while the timer runs, so a record's index IS its
 riding-time second — wall-clock gaps (auto-pauses) never count. Missing power
 samples read as 0 W (coasting rule, see CONTEXT.md).
 """
+
 from __future__ import annotations
 
 import bisect
@@ -39,12 +40,14 @@ class ReferenceRide:
             power_w = float(power) if power is not None else 0.0
             if distance is not None:
                 if distance > last_distance and fields.get("position_lat") is not None:
-                    moving.append((
-                        distance,
-                        power_w,
-                        fields["position_lat"] * cls.SEMICIRCLE_TO_DEG,
-                        fields["position_long"] * cls.SEMICIRCLE_TO_DEG,
-                    ))
+                    moving.append(
+                        (
+                            distance,
+                            power_w,
+                            fields["position_lat"] * cls.SEMICIRCLE_TO_DEG,
+                            fields["position_long"] * cls.SEMICIRCLE_TO_DEG,
+                        )
+                    )
                 last_distance = distance
             distances.append(last_distance)
             powers.append(power_w)

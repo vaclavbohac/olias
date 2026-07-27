@@ -1,4 +1,5 @@
 """Wire-format tests for the FTMS and Heart Rate payloads (pure functions)."""
+
 import struct
 
 from olias.ble.heart import parse_heart_rate
@@ -16,10 +17,10 @@ def test_indoor_bike_data_extracts_cadence_in_half_rpm():
     flags = 0x0040 | 0x0004 | 0x0010
     payload = (
         struct.pack("<H", flags)
-        + struct.pack("<H", 2500)   # speed
-        + struct.pack("<H", 170)    # cadence: 170 * 0.5 = 85 rpm
-        + b"\x10\x27\x00"           # distance uint24
-        + struct.pack("<h", 321)    # power
+        + struct.pack("<H", 2500)  # speed
+        + struct.pack("<H", 170)  # cadence: 170 * 0.5 = 85 rpm
+        + b"\x10\x27\x00"  # distance uint24
+        + struct.pack("<h", 321)  # power
     )
     assert parse_indoor_bike_data(payload) == (321.0, 85.0)
 

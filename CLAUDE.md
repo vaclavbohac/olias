@@ -17,6 +17,7 @@ Domain vocabulary lives in `CONTEXT.md` (use its terms — Route Profile, Remain
 
 - Python 3.11 (pinned in `.python-version`); uv-managed, hatchling-built package.
 - Tests: `uv run pytest` (single test: `uv run pytest tests/test_engine.py -k pause`)
+- Lint & format (both enforced by CI): `uv run ruff check --fix .` and `uv run ruff format .`
 - Ride: `uv run olias ride` (first time: `uv run olias devices` to scan & store BLE devices)
 - Recalibrate Crr after new reference rides: `uv run tools/calibrate.py`, copy the value into `olias/config.py` — the replay-validation tests are the guardrail
 - Rebuild the route CSV: `uv run --with fitdecode tools/build_route.py`

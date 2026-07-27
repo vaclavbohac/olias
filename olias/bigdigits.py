@@ -1,4 +1,5 @@
 """Block-character numerals that scale to any size terminal."""
+
 from __future__ import annotations
 
 _F = {

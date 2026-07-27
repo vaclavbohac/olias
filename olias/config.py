@@ -1,4 +1,5 @@
 """Canonical constants: route, climb markers, and the calibrated Rider Model."""
+
 from pathlib import Path
 
 from olias.physics import RiderModel
@@ -13,8 +14,8 @@ ROUTE_CSV = RESOURCES / "olias-route.csv"
 CLIMB = Segment(start_m=8500, end_m=17250)
 
 MASS_KG = 92.3  # 82 rider + 9 bike + 1.3 equipment (weighed 2026-07)
-CRR = 0.0122    # fitted by tools/calibrate.py against ride 001 on the Climb
-CDA_M2 = 0.32   # road default; not identifiable at climbing speeds
+CRR = 0.0122  # fitted by tools/calibrate.py against ride 001 on the Climb
+CDA_M2 = 0.32  # road default; not identifiable at climbing speeds
 
 
 def default_rider_model() -> RiderModel:

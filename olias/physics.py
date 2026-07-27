@@ -1,4 +1,5 @@
 """Rider Model: computes speed from measured power and grade (see ADR-0001)."""
+
 from __future__ import annotations
 
 import math

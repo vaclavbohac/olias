@@ -1,4 +1,5 @@
 """FTMS trainer adapter (ADR-0002): power in, grade out, reconnect forever."""
+
 from __future__ import annotations
 
 import asyncio
@@ -22,6 +23,7 @@ async def rescan_by_name(adapter) -> None:
         logger.info("found %s at new address %s", adapter.name, device.address)
         adapter.address = device.address
 
+
 FTMS_SERVICE = "00001826-0000-1000-8000-00805f9b34fb"
 INDOOR_BIKE_DATA = "00002ad2-0000-1000-8000-00805f9b34fb"
 CONTROL_POINT = "00002ad9-0000-1000-8000-00805f9b34fb"
@@ -31,8 +33,8 @@ OP_SET_SIM_PARAMS = 0x11
 
 # sim-parameter constants sent alongside grade; feel-only (position comes from
 # app-side physics, ADR-0001), so road defaults are fine
-SIM_CRR = 0.004   # unit 0.0001
-SIM_CW = 0.51     # kg/m, unit 0.01
+SIM_CRR = 0.004  # unit 0.0001
+SIM_CW = 0.51  # kg/m, unit 0.01
 
 
 def parse_indoor_bike_data(payload: bytes) -> tuple[float | None, float | None]:
@@ -109,9 +111,7 @@ class TrainerAdapter:
         while not stop.is_set() and client.is_connected:
             grade = self._pending_grade_pct
             if grade is not None and grade != sent:
-                await client.write_gatt_char(
-                    CONTROL_POINT, self._sim_params(grade), response=True
-                )
+                await client.write_gatt_char(CONTROL_POINT, self._sim_params(grade), response=True)
                 sent = grade
             await asyncio.sleep(0.1)
 

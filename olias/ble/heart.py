@@ -1,4 +1,5 @@
 """BLE Heart Rate adapter: latest bpm, reconnect forever, never affects the sim."""
+
 from __future__ import annotations
 
 import asyncio

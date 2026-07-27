@@ -6,6 +6,7 @@ time. Ride 001 is in-sample (the calibration target); the others are
 out-of-sample and carry looser bounds — they were ridden under different
 conditions (wind, tires, season), which a single Crr cannot capture exactly.
 """
+
 import pytest
 
 from olias import config

@@ -8,6 +8,7 @@ in some rides) that must not reach the trainer.
 Run:  uv run --with fitdecode tools/build_route.py
 Output: resources/olias-route.csv  (distance_m, lat, lon, altitude_m, grade_pct)
 """
+
 import bisect
 import csv
 from pathlib import Path
@@ -17,10 +18,10 @@ import fitdecode
 REF = Path(__file__).parent.parent / "resources" / "olias-ride-001.fit"
 OUT = Path(__file__).parent.parent / "resources" / "olias-route.csv"
 
-GRID_STEP = 5.0        # m between output points
-ALT_SMOOTH_WIN = 11    # points (55 m) moving average over altitude
-GRADE_SPAN = 3         # grade from altitude difference over +-3 points (30 m)
-GRADE_CLAMP = 18.0     # % safety clamp, generous vs the route's real ~12% max
+GRID_STEP = 5.0  # m between output points
+ALT_SMOOTH_WIN = 11  # points (55 m) moving average over altitude
+GRADE_SPAN = 3  # grade from altitude difference over +-3 points (30 m)
+GRADE_CLAMP = 18.0  # % safety clamp, generous vs the route's real ~12% max
 
 SEMI_TO_DEG = 180 / 2**31
 
@@ -85,11 +86,18 @@ def main():
     with open(OUT, "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["distance_m", "lat", "lon", "altitude_m", "grade_pct"])
-        for row in zip(grid, lat, lon, alt, grade):
-            w.writerow([f"{row[0]:.0f}", f"{row[1]:.6f}", f"{row[2]:.6f}",
-                        f"{row[3]:.1f}", f"{row[4]:.2f}"])
+        for row in zip(grid, lat, lon, alt, grade, strict=True):
+            w.writerow(
+                [
+                    f"{row[0]:.0f}",
+                    f"{row[1]:.6f}",
+                    f"{row[2]:.6f}",
+                    f"{row[3]:.1f}",
+                    f"{row[4]:.2f}",
+                ]
+            )
 
-    ascent = sum(max(0.0, b - a) for a, b in zip(alt, alt[1:]))
+    ascent = sum(max(0.0, b - a) for a, b in zip(alt, alt[1:], strict=False))
     print(f"{OUT.name}: {len(grid)} points, {total / 1000:.2f} km")
     print(f"altitude {min(alt):.1f}..{max(alt):.1f} m, ascent {ascent:.0f} m")
     print(f"grade {min(grade):.1f}..{max(grade):.1f} %")

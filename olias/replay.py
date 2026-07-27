@@ -16,6 +16,7 @@ Replay Validation):
   rider choices the model cannot predict; both sides of the comparison
   exclude them.
 """
+
 from __future__ import annotations
 
 import bisect
@@ -29,7 +30,9 @@ REPLAY_DT_S = 1.0
 ENTRY_SPEED_MS = 3.0
 
 
-def _odometer_nearest(ride: ReferenceRide, latlon: tuple[float, float], not_before: float = 0.0) -> float:
+def _odometer_nearest(
+    ride: ReferenceRide, latlon: tuple[float, float], not_before: float = 0.0
+) -> float:
     """Ride odometer reading at the point geographically nearest to latlon."""
     tlat, tlon = latlon
     best_d, best_err = 0.0, float("inf")
@@ -68,7 +71,7 @@ def climb_replay_time_s(model: RiderModel, ride: ReferenceRide, profile: RoutePr
         ride_d = start + (position_m - climb.start_m) * scale
         i = bisect.bisect_left(distances, ride_d)
         j = max(bisect.bisect_left(distances, ride_d + POWER_WINDOW_M * scale), i + 1)
-        window = powers[min(i, len(powers) - 1):min(j, len(powers))] or [powers[-1]]
+        window = powers[min(i, len(powers) - 1) : min(j, len(powers))] or [powers[-1]]
         return sum(window) / len(window)
 
     v, position_m, t = ENTRY_SPEED_MS, climb.start_m, 0

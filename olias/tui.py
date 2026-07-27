@@ -1,4 +1,5 @@
 """Ride screen, readable from the bike: numerals scale with the terminal."""
+
 from __future__ import annotations
 
 import logging
@@ -66,17 +67,36 @@ class RideApp(App):
             Static("REMAINING ASCENT · M", classes="label"),
             Static("", id="ascent", classes="big"),
             Grid(
-                Vertical(Static("", id="climb-time-label", classes="label"), Static("", id="climb-time", classes="big")),
-                Vertical(Static("", id="eta-label", classes="label"), Static("", id="eta", classes="big")),
-                Vertical(Static("", id="delta-label", classes="label"), Static("", id="delta", classes="big")),
+                Vertical(
+                    Static("", id="climb-time-label", classes="label"),
+                    Static("", id="climb-time", classes="big"),
+                ),
+                Vertical(
+                    Static("", id="eta-label", classes="label"), Static("", id="eta", classes="big")
+                ),
+                Vertical(
+                    Static("", id="delta-label", classes="label"),
+                    Static("", id="delta", classes="big"),
+                ),
                 id="climb-row",
             ),
             Grid(
-                Vertical(Static("POWER · W", classes="label"), Static("", id="power", classes="big")),
-                Vertical(Static("CADENCE · RPM", classes="label"), Static("", id="cadence", classes="big")),
-                Vertical(Static("HEART · BPM", classes="label"), Static("", id="hr", classes="big")),
-                Vertical(Static("SPEED · KM/H", classes="label"), Static("", id="speed", classes="big")),
-                Vertical(Static("GRADE · %", classes="label"), Static("", id="grade", classes="big")),
+                Vertical(
+                    Static("POWER · W", classes="label"), Static("", id="power", classes="big")
+                ),
+                Vertical(
+                    Static("CADENCE · RPM", classes="label"),
+                    Static("", id="cadence", classes="big"),
+                ),
+                Vertical(
+                    Static("HEART · BPM", classes="label"), Static("", id="hr", classes="big")
+                ),
+                Vertical(
+                    Static("SPEED · KM/H", classes="label"), Static("", id="speed", classes="big")
+                ),
+                Vertical(
+                    Static("GRADE · %", classes="label"), Static("", id="grade", classes="big")
+                ),
                 id="stats",
             ),
             Static("", id="route-progress"),
@@ -99,9 +119,7 @@ class RideApp(App):
 
     def update_snapshot(self, snap: Snapshot) -> None:
         big, small = self._scales()
-        self.query_one("#ascent", Static).update(
-            render_big(f"{snap.remaining_ascent_m:.0f}", big)
-        )
+        self.query_one("#ascent", Static).update(render_big(f"{snap.remaining_ascent_m:.0f}", big))
 
         climb_time_label = self.query_one("#climb-time-label", Static)
         climb_time = self.query_one("#climb-time", Static)

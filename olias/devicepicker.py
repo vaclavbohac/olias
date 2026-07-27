@@ -5,6 +5,7 @@ only Heart Rate devices in the HR list. Returns
 {"trainer": {"address", "name"} | None, "heart": {...} | None} or None if
 cancelled.
 """
+
 from __future__ import annotations
 
 from textual.app import App, ComposeResult

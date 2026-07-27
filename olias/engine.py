@@ -1,4 +1,5 @@
 """Session engine: the fixed-tick loop that advances a ride (pure, no I/O)."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -153,7 +154,9 @@ class SessionEngine:
         if self._climb_started_at_s is None or not self._profile.on_climb(self._position_m):
             return None
         climb_start = self._profile.climb.start_m
-        reference_time = self._reference.elapsed_s_at(self._position_m) - self._reference.elapsed_s_at(climb_start)
+        reference_time = self._reference.elapsed_s_at(
+            self._position_m
+        ) - self._reference.elapsed_s_at(climb_start)
         rider_time = self._elapsed_s - self._climb_started_at_s
         return reference_time - rider_time
 
@@ -166,8 +169,12 @@ class SessionEngine:
         if self._climb_started_at_s is None or not self._profile.on_climb(self._position_m):
             return None
         climb = self._profile.climb
-        reference_so_far = self._reference.elapsed_s_at(self._position_m) - self._reference.elapsed_s_at(climb.start_m)
-        reference_remaining = self._reference.elapsed_s_at(climb.end_m) - self._reference.elapsed_s_at(self._position_m)
+        reference_so_far = self._reference.elapsed_s_at(
+            self._position_m
+        ) - self._reference.elapsed_s_at(climb.start_m)
+        reference_remaining = self._reference.elapsed_s_at(
+            climb.end_m
+        ) - self._reference.elapsed_s_at(self._position_m)
         rider_so_far = self._elapsed_s - self._climb_started_at_s
         if rider_so_far < self.PACE_RATIO_WARMUP_S or reference_so_far <= 0:
             ratio = 1.0

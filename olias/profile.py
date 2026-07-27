@@ -2,6 +2,7 @@
 
 See CONTEXT.md for the domain terms (Route Profile, Remaining Ascent, the Climb).
 """
+
 from __future__ import annotations
 
 import bisect

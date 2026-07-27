@@ -8,6 +8,7 @@ validation tests are the guardrail.
 
 Run:  uv run tools/calibrate.py
 """
+
 from olias import config
 from olias.physics import RiderModel
 from olias.reference import ReferenceRide
@@ -43,7 +44,8 @@ def main():
         sim = climb_replay_time_s(model, ride, profile)
         real = real_climb_moving_time_s(ride, profile)
         tag = "in-sample" if name == "001" else "out-of-sample"
-        print(f"ride {name} ({tag}): sim {sim:.0f}s vs real {real:.0f}s ({(sim / real - 1) * 100:+.1f}%)")
+        error_pct = (sim / real - 1) * 100
+        print(f"ride {name} ({tag}): sim {sim:.0f}s vs real {real:.0f}s ({error_pct:+.1f}%)")
 
 
 if __name__ == "__main__":

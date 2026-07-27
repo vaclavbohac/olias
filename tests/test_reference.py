@@ -23,7 +23,7 @@ def test_elapsed_time_grows_monotonically_with_position(ride_001):
         ride_001.total_time_s, abs=2
     )
     marks = [ride_001.elapsed_s_at(d) for d in range(0, 36000, 1000)]
-    assert all(a < b for a, b in zip(marks, marks[1:]))
+    assert all(a < b for a, b in zip(marks, marks[1:], strict=False))
     # reaching halfway through the Climb takes a meaningful chunk of the ride
     assert 1000 < ride_001.elapsed_s_at(13000) < 6000
 

@@ -47,7 +47,7 @@ def test_remaining_ascent_at_route_end_is_zero(profile):
 
 def test_remaining_ascent_never_increases_along_the_route(profile):
     samples = [profile.remaining_ascent(d) for d in range(0, 36255, 500)]
-    assert all(a >= b for a, b in zip(samples, samples[1:]))
+    assert all(a >= b for a, b in zip(samples, samples[1:], strict=False))
 
 
 def test_grade_matches_route_data_at_grid_points(profile, rows):

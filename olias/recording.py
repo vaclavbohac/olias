@@ -3,6 +3,7 @@
 Records are written at 1 Hz of riding time only; pauses become FIT timer
 stop/start events, exactly like the head-unit recordings in resources/.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -65,18 +66,20 @@ class SessionRecorder:
             f = {x.name: x.value for x in frame.fields}
             if f.get("timestamp") is None or f.get("distance") is None:
                 continue
-            recorder._samples.append(_Sample(
-                wall_ms=int(f["timestamp"].timestamp() * 1000),
-                position_m=f["distance"],
-                lat=(f.get("position_lat") or 0) * cls.SEMICIRCLE_TO_DEG,
-                lon=(f.get("position_long") or 0) * cls.SEMICIRCLE_TO_DEG,
-                altitude_m=f.get("altitude") or 0.0,
-                grade_pct=f.get("grade") or 0.0,
-                speed_ms=f.get("speed") or 0.0,
-                power_w=float(f.get("power") or 0),
-                heart_rate_bpm=f.get("heart_rate"),
-                cadence_rpm=float(f["cadence"]) if f.get("cadence") is not None else None,
-            ))
+            recorder._samples.append(
+                _Sample(
+                    wall_ms=int(f["timestamp"].timestamp() * 1000),
+                    position_m=f["distance"],
+                    lat=(f.get("position_lat") or 0) * cls.SEMICIRCLE_TO_DEG,
+                    lon=(f.get("position_long") or 0) * cls.SEMICIRCLE_TO_DEG,
+                    altitude_m=f.get("altitude") or 0.0,
+                    grade_pct=f.get("grade") or 0.0,
+                    speed_ms=f.get("speed") or 0.0,
+                    power_w=float(f.get("power") or 0),
+                    heart_rate_bpm=f.get("heart_rate"),
+                    cadence_rpm=float(f["cadence"]) if f.get("cadence") is not None else None,
+                )
+            )
         if recorder._samples:
             # the gap between sessions becomes a proper timer stop; the
             # continuation's first RIDING snapshot adds the matching start
@@ -102,18 +105,20 @@ class SessionRecorder:
             return
         self._last_recorded_second = second
         lat, lon = self._profile.latlon_at(snapshot.position_m)
-        self._samples.append(_Sample(
-            wall_ms=wall_ms,
-            position_m=snapshot.position_m,
-            lat=lat,
-            lon=lon,
-            altitude_m=self._profile.altitude_at(snapshot.position_m),
-            grade_pct=snapshot.grade_pct,
-            speed_ms=snapshot.speed_ms,
-            power_w=snapshot.power_w,
-            heart_rate_bpm=snapshot.heart_rate_bpm,
-            cadence_rpm=snapshot.cadence_rpm,
-        ))
+        self._samples.append(
+            _Sample(
+                wall_ms=wall_ms,
+                position_m=snapshot.position_m,
+                lat=lat,
+                lon=lon,
+                altitude_m=self._profile.altitude_at(snapshot.position_m),
+                grade_pct=snapshot.grade_pct,
+                speed_ms=snapshot.speed_ms,
+                power_w=snapshot.power_w,
+                heart_rate_bpm=snapshot.heart_rate_bpm,
+                cadence_rpm=snapshot.cadence_rpm,
+            )
+        )
 
     def write(self, path: Path) -> Path | None:
         """Write the FIT activity; returns None if nothing was ridden."""

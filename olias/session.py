@@ -4,12 +4,14 @@ Adapters are anything with the right attributes (trainer: latest_power_w,
 connected, set_grade; heart: latest_bpm) — the real BLE classes and test
 fakes both qualify.
 """
+
 from __future__ import annotations
 
 import asyncio
 import logging
 import time
-from typing import Callable, Protocol
+from collections.abc import Callable
+from typing import Protocol
 
 from olias.engine import EngineState, SessionEngine, Snapshot
 
@@ -90,5 +92,6 @@ class SessionRunner:
                     await asyncio.sleep(delay)
                 else:
                     next_tick = loop.time()  # fell behind; reset rather than spiral
-        logger.info("session ended: stopped at %.0f m, state %s",
-                    snapshot.position_m, snapshot.state.name)
+        logger.info(
+            "session ended: stopped at %.0f m, state %s", snapshot.position_m, snapshot.state.name
+        )

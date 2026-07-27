@@ -1,4 +1,5 @@
 """Entry points: olias devices (scan & remember), olias ride (the session)."""
+
 from __future__ import annotations
 
 import argparse
@@ -90,9 +91,7 @@ def cmd_ride(args) -> int:
                 else None
             ),
             climb_ended_at_s=(
-                prior.elapsed_s_at(climb.end_m)
-                if prior.total_distance_m >= climb.end_m
-                else None
+                prior.elapsed_s_at(climb.end_m) if prior.total_distance_m >= climb.end_m else None
             ),
             cadence_sum=cadence_sum,
             cadence_samples=cadence_samples,
@@ -113,8 +112,11 @@ def cmd_ride(args) -> int:
             format="%(asctime)s %(levelname)s %(name)s: %(message)s",
         )
     log = logging.getLogger("olias.ride")
-    log.info("session starting (trainer=%s heart=%s)", getattr(trainer, "address", "demo"),
-             getattr(heart, "address", None))
+    log.info(
+        "session starting (trainer=%s heart=%s)",
+        getattr(trainer, "address", "demo"),
+        getattr(heart, "address", None),
+    )
 
     app_holder = {}
 
