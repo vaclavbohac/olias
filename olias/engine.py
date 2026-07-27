@@ -74,6 +74,10 @@ class SessionEngine:
             self._speed_ms = 0.0
             self._state = EngineState.FINISHED
 
+    @property
+    def state(self) -> EngineState:
+        return self._state
+
     def pause(self) -> None:
         if self._state is EngineState.RIDING:
             self._state = EngineState.PAUSED

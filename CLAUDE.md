@@ -11,17 +11,19 @@ Olias is a bike trainer app that simulates a real bike ride to Olias (Málaga) u
 - Controls trainer resistance based on the rider's current position along the route
 - Replays telemetry from real rides to simulate the same ride
 
-The project is at the scaffold stage: `main.py` is a hello-world entry point and there are no dependencies, tests, or package structure yet.
-
 Domain vocabulary lives in `CONTEXT.md` (use its terms — Route Profile, Remaining Ascent, Climb Delta, Rider Model, etc.); architectural decisions and their rationale live in `docs/adr/`. Read both before designing anything.
 
 ## Environment and commands
 
-- Python 3.11 (pinned in `.python-version`); project metadata in `pyproject.toml` (uv-style layout).
-- Run the app: `uv run main.py` (or `python main.py`)
-- Add a dependency: `uv add <package>`
+- Python 3.11 (pinned in `.python-version`); uv-managed, hatchling-built package.
+- Tests: `uv run pytest` (single test: `uv run pytest tests/test_engine.py -k pause`)
+- Ride: `uv run olias ride` (first time: `uv run olias devices` to scan & store BLE devices)
+- Recalibrate Crr after new reference rides: `uv run tools/calibrate.py`, copy the value into `olias/config.py` — the replay-validation tests are the guardrail
+- Rebuild the route CSV: `uv run --with fitdecode tools/build_route.py`
 
-No linter, formatter, or test runner is configured yet.
+## Architecture
+
+Pure core (no I/O, fully tested): `profile` (Route Profile + Remaining Ascent), `physics` (Rider Model), `reference` (FIT recordings indexed by riding time/position), `replay` (Replay Validation — read its docstring before touching it; every rule answers a real failure), `engine` (tick state machine: ARMED/RIDING/PAUSED/FINISHED, Climb Delta, trainer grade dedup). Shell: `session` (asyncio runner), `ble/` (FTMS trainer + HR adapters, reconnect-forever, disconnect = 0 W), `recording` (FIT writer; output reads back via `ReferenceRide`), `tui` (Textual), `cli`. Constants and the calibrated model live in `olias/config.py`.
 
 ## Ride data (`resources/`)
 
