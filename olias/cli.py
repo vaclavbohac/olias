@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import logging
 import sys
 import time
 from datetime import datetime
@@ -72,6 +73,18 @@ def cmd_ride(args) -> int:
     )
     recorder = SessionRecorder(profile)
 
+    stamp = datetime.fromtimestamp(time.time()).strftime("%Y%m%d-%H%M%S")
+    SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    if not args.demo:
+        logging.basicConfig(
+            filename=SESSIONS_DIR / f"olias-{stamp}.log",
+            level=logging.INFO,
+            format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+        )
+    log = logging.getLogger("olias.ride")
+    log.info("session starting (trainer=%s heart=%s)", getattr(trainer, "address", "demo"),
+             getattr(heart, "address", None))
+
     app_holder = {}
 
     def on_snapshot(snap, wall_s):
@@ -97,11 +110,18 @@ def cmd_ride(args) -> int:
         for t in tasks:
             t.cancel()
 
-    asyncio.run(main_async())
-
-    stamp = datetime.fromtimestamp(time.time()).strftime("%Y%m%d-%H%M%S")
-    written = recorder.write(SESSIONS_DIR / f"olias-{stamp}.fit")
-    print(f"session saved: {written}" if written else "nothing ridden — no file saved")
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        log.info("session ended: interrupted (ctrl-c)")
+    except Exception:
+        log.exception("session crashed")
+        raise
+    finally:
+        # ride data is never thrown away, even on a crash
+        written = recorder.write(SESSIONS_DIR / f"olias-{stamp}.fit")
+        log.info("recording: %s", written or "nothing ridden")
+        print(f"session saved: {written}" if written else "nothing ridden — no file saved")
     return 0
 
 

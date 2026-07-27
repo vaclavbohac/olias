@@ -1,6 +1,8 @@
 """Ride screen, readable from the bike: numerals scale with the terminal."""
 from __future__ import annotations
 
+import logging
+
 from rich.text import Text
 from textual.app import App, ComposeResult
 from textual.containers import Grid, Vertical
@@ -200,5 +202,6 @@ class RideApp(App):
         self._runner.pause_toggle()
 
     def action_quit_ride(self) -> None:
+        logging.getLogger(__name__).info("quit key pressed")
         self._runner.stop.set()
         self.exit()

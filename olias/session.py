@@ -7,10 +7,13 @@ fakes both qualify.
 from __future__ import annotations
 
 import asyncio
+import logging
 import time
 from typing import Callable, Protocol
 
 from olias.engine import EngineState, SessionEngine, Snapshot
+
+logger = logging.getLogger(__name__)
 
 TICK_INTERVAL_S = 0.25  # 4 Hz
 
@@ -51,11 +54,16 @@ class SessionRunner:
 
     def pause_toggle(self) -> None:
         if self._engine.state is EngineState.PAUSED:
+            logger.info("resumed")
             self._engine.resume()
         else:
+            logger.info("paused")
             self._engine.pause()
 
     async def run(self) -> None:
+        logger.info("session runner started")
+        loop = asyncio.get_running_loop()
+        next_tick = loop.time()
         while not self.stop.is_set():
             power = self._trainer.latest_power_w
             snapshot = self._engine.tick(
@@ -68,6 +76,15 @@ class SessionRunner:
                 self._trainer.set_grade(snapshot.trainer_grade_pct)
             self._on_snapshot(snapshot, self._clock())
             if snapshot.state is EngineState.FINISHED:
-                break
+                logger.info("session ended: route finished")
+                return
             if self._tick_interval_s > 0:
-                await asyncio.sleep(self._tick_interval_s)
+                # absolute schedule: processing time doesn't drift the 4 Hz grid
+                next_tick += self._tick_interval_s
+                delay = next_tick - loop.time()
+                if delay > 0:
+                    await asyncio.sleep(delay)
+                else:
+                    next_tick = loop.time()  # fell behind; reset rather than spiral
+        logger.info("session ended: stopped at %.0f m, state %s",
+                    snapshot.position_m, snapshot.state.name)
