@@ -11,3 +11,6 @@ wheels/
 
 # macOS
 .DS_Store
+
+# Personal ride outputs
+sessions/

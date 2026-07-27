@@ -13,6 +13,8 @@ Olias is a bike trainer app that simulates a real bike ride to Olias (Málaga) u
 
 The project is at the scaffold stage: `main.py` is a hello-world entry point and there are no dependencies, tests, or package structure yet.
 
+Domain vocabulary lives in `CONTEXT.md` (use its terms — Route Profile, Remaining Ascent, Climb Delta, Rider Model, etc.); architectural decisions and their rationale live in `docs/adr/`. Read both before designing anything.
+
 ## Environment and commands
 
 - Python 3.11 (pinned in `.python-version`); project metadata in `pyproject.toml` (uv-style layout).
